@@ -4,75 +4,32 @@
  */
 
 import { Inject, Injectable, Scope } from '@nestjs/common';
-import type { Packed } from '@/misc/json-schema.js';
-import { MetaService } from '@/core/MetaService.js';
-import { NoteEntityService } from '@/core/entities/NoteEntityService.js';
-import { NoteStreamingHidingService } from '../NoteStreamingHidingService.js';
+import { REQUEST } from '@nestjs/core';
 import { bindThis } from '@/decorators.js';
-import { RoleService } from '@/core/RoleService.js';
-import { isRenotePacked, isQuotePacked } from '@/misc/is-renote.js';
 import type { JsonObject } from '@/misc/json-value.js';
 import Channel, { type ChannelRequest } from '../channel.js';
-import { REQUEST } from '@nestjs/core';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class GlobalTimelineChannel extends Channel {
 	public readonly chName = 'globalTimeline';
 	public static shouldShare = false;
 	public static requireCredential = false as const;
-	private withRenotes: boolean;
-	private withFiles: boolean;
 
 	constructor(
 		@Inject(REQUEST)
 		request: ChannelRequest,
-
-		private metaService: MetaService,
-		private roleService: RoleService,
-		private noteEntityService: NoteEntityService,
-		private noteStreamingHidingService: NoteStreamingHidingService,
 	) {
 		super(request);
-		//this.onNote = this.onNote.bind(this);
 	}
 
 	@bindThis
-	public async init(params: JsonObject) {
-		const policies = await this.roleService.getUserPolicies(this.user ? this.user.id : null);
-		if (!policies.gtlAvailable) return;
-
-		this.withRenotes = !!(params.withRenotes ?? true);
-		this.withFiles = !!(params.withFiles ?? false);
-
-		// Subscribe events
-		this.subscriber.on('notesStream', this.onNote);
+	public async init(_params: JsonObject): Promise<boolean> {
+		// Global streaming is permanently unavailable in this local-only fork.
+		return false;
 	}
 
 	@bindThis
-	private async onNote(note: Packed<'Note'>) {
-		if (this.withFiles && (note.fileIds == null || note.fileIds.length === 0)) return;
-
-		if (note.visibility !== 'public') return;
-		if (note.channelId != null) return;
-		if (note.user.requireSigninToViewContents && this.user == null) return;
-		if (note.renote && note.renote.user.requireSigninToViewContents && this.user == null) return;
-		if (note.reply && note.reply.user.requireSigninToViewContents && this.user == null) return;
-
-		if (isRenotePacked(note) && !isQuotePacked(note) && !this.withRenotes) return;
-
-		if (this.isNoteMutedOrBlocked(note)) return;
-
-		const filtered = await this.noteStreamingHidingService.filter(note, this.user?.id ?? null);
-		if (!filtered) return;
-		// eslint-disable-next-line no-param-reassign -- これ以降元の Note オブジェクトは見てはいけないので、いっそ再代入した方が安全
-		note = filtered;
-
-		this.send('note', await this.noteEntityService.withMyRenoteReaction(note, this.user?.id ?? null));
-	}
-
-	@bindThis
-	public dispose() {
-		// Unsubscribe events
-		this.subscriber.off('notesStream', this.onNote);
+	public dispose(): void {
+		return;
 	}
 }

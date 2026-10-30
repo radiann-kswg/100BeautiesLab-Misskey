@@ -1,0 +1,10 @@
+{
+	"aphr": {
+		"repository": "https://github.com/radiann-kswg/APHRNTs_100.git",
+		"commit": "ea5da87364f407535b772fcad07df7d249b0b400"
+	},
+	"tarot": {
+		"repository": "https://github.com/radiann-kswg/Tarot-byFateLineDealer.git",
+		"commit": "a94c2e72861aa66d6c7abcbc351367fea88cdf72"
+	}
+}

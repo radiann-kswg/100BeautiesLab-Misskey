@@ -48,6 +48,7 @@ js-built
 src-js
 /data
 /.cache-loader
+/.creations-bots/
 /db
 /meili_data
 npm-debug.log

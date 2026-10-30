@@ -463,6 +463,10 @@ export const ROUTE_DEF = [{
 		name: 'settings',
 		component: page(() => import('@/pages/admin/settings.vue')),
 	}, {
+		path: '/creations',
+		name: 'creations',
+		component: page(() => import('@/pages/admin/creations.vue')),
+	}, {
 		path: '/branding',
 		name: 'branding',
 		component: page(() => import('@/pages/admin/branding.vue')),

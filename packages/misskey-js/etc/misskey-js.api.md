@@ -152,6 +152,12 @@ type AdminCaptchaCurrentResponse = operations['admin___captcha___current']['resp
 type AdminCaptchaSaveRequest = operations['admin___captcha___save']['requestBody']['content']['application/json'];
 
 // @public (undocumented)
+type AdminCreationsRequest = operations['admin___creations']['requestBody']['content']['application/json'];
+
+// @public (undocumented)
+type AdminCreationsResponse = operations['admin___creations']['responses']['200']['content']['application/json'];
+
+// @public (undocumented)
 type AdminDeleteAccountRequest = operations['admin___delete-account']['requestBody']['content']['application/json'];
 
 // @public (undocumented)
@@ -1583,6 +1589,8 @@ declare namespace entities {
         AdminAvatarDecorationsUpdateRequest,
         AdminCaptchaCurrentResponse,
         AdminCaptchaSaveRequest,
+        AdminCreationsRequest,
+        AdminCreationsResponse,
         AdminDeleteAccountRequest,
         AdminDeleteAllFilesOfAUserRequest,
         AdminDriveFilesRequest,
