@@ -34,9 +34,10 @@ afterEach(async () => {
 	vi.unstubAllEnvs();
 });
 
-async function fixture() {
+async function fixture(sharedStore = false) {
 	const directory = await mkdtemp(resolve(tmpdir(), 'misskey-creations-test-'));
 	const catalogPath = resolve(directory, 'catalog.json');
+	const storePath = resolve(directory, 'creations.sqlite');
 	const identity = { work_key: '#Works_Synthetic', db_key: '#DB_Character', index: { No: 1 } };
 	const entry = {
 		record_identity: identity, display_name: 'Synthetic character',
@@ -44,7 +45,7 @@ async function fixture() {
 		text_rp_reference: { source: 'record_fields', fields: { Character_JP: 'Synthetic test persona, not a real copyrighted character.' } },
 	};
 	await writeFile(catalogPath, JSON.stringify({ characters: [entry] }));
-	const store = new CreationsStore(':memory:');
+	const store = new CreationsStore(sharedStore ? storePath : ':memory:');
 	cleanups.push(async () => { store.close(); await rm(directory, { recursive: true }); });
 	const key = canonicalIdentity(identity);
 	store.write('config', JSON.stringify({ ...defaultSettings, running: true, catalogPath }));
@@ -75,7 +76,7 @@ async function fixture() {
 	Object.defineProperty(service, 'store', { value: store });
 	vi.mocked(generate).mockResolvedValue('{"route":"chat","text":"Synthetic reply"}');
 	vi.mocked(providerKey).mockReturnValue('synthetic-key');
-	return { service, store, key, input, root, actor, users, notes, followings, noteCreate, signup, entry, catalogPath };
+	return { service, store, storePath, key, input, root, actor, users, notes, followings, noteCreate, signup, entry, catalogPath };
 }
 
 describe('connected mention-to-character runtime', () => {
@@ -156,6 +157,45 @@ describe('connected mention-to-character runtime', () => {
 		}));
 		expect(f.store.spent('tarot')).toBe(10);
 		expect(f.store.countPosts(f.key, false)).toBe(0);
+	});
+
+	test('a bot stop in another store aborts its worker and rejects the result after re-enable', async () => {
+		const f = await fixture(true);
+		vi.stubEnv('CREATIONS_ANTHROPIC_API_KEY', 'synthetic-key');
+		const settings = f.store.settings();
+		settings.bots.tarot = { enabled: true, model: '', budgetJpy: 100, estimatePerCallJpy: 10 };
+		f.store.write('config', JSON.stringify(settings));
+		f.store.write('terms:tarot', 'confirmed');
+		const selection = f.store.selections()[0];
+		selection.functions = ['tarot'];
+		f.store.saveSelection(selection);
+		vi.mocked(generate).mockResolvedValue('{"route":"tarot","text":""}');
+		let started!: () => void;
+		let aborted!: () => void;
+		let finishWorker!: (result: string) => void;
+		const workerStarted = new Promise<void>(resolveStarted => { started = resolveStarted; });
+		const workerAborted = new Promise<void>(resolveAborted => { aborted = resolveAborted; });
+		vi.mocked(runWorker).mockImplementation((_root, _bot, _model, _request, signal) => new Promise(resolveWorker => {
+			finishWorker = resolveWorker;
+			started();
+			signal?.addEventListener('abort', aborted, { once: true });
+		}));
+		const otherStore = new CreationsStore(f.storePath);
+		try {
+			const tick = f.service.tick();
+			await workerStarted;
+			otherStore.stop('tarot');
+			const reenabled = otherStore.settings();
+			reenabled.bots.tarot.enabled = true;
+			otherStore.write('config', JSON.stringify(reenabled));
+			await workerAborted;
+			finishWorker('Stale worker result');
+			await tick;
+			expect(otherStore.botStopVersion('tarot')).not.toBeNull();
+			expect(f.noteCreate.create).not.toHaveBeenCalled();
+		} finally {
+			otherStore.close();
+		}
 	});
 
 	test('unknown conversation cost pauses generation and explains the stopped reply', async () => {

@@ -122,6 +122,7 @@ export class CreationsStore {
 			const settings = this.settings();
 			if (bot) {
 				settings.bots[bot].enabled = false;
+				this.write(`botStopVersion:${bot}`, randomUUID());
 			} else {
 				settings.running = false;
 				this.write('stopVersion', randomUUID());
@@ -132,6 +133,10 @@ export class CreationsStore {
 			this.db.exec('ROLLBACK');
 			throw error;
 		}
+	}
+
+	public botStopVersion(bot: BotFunction): string | null {
+		return this.read(`botStopVersion:${bot}`);
 	}
 
 	public pause(): void {

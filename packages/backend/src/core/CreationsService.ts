@@ -363,19 +363,25 @@ ${spontaneous ? 'Write one short spontaneous public post, route=chat. Do not men
 		text: string;
 		reference: string;
 		context: Message[];
-	}, stopVersion: string | null): Promise<string> {
+	}, stopVersion: string | null, botStopVersion: string | null): Promise<string> {
 		if (!this.store.settings().running || this.store.read('stopVersion') !== stopVersion) throw new CreationsError('RUNTIME_STOPPED');
+		if (this.store.botStopVersion(bot) !== botStopVersion) throw new CreationsError('BOT_STOPPED');
 		this.validateBot(bot, config);
 		if (!config.bots[bot].enabled) throw new CreationsError('BOT_STOPPED');
 		const settings = config.bots[bot];
 		const reservation = this.store.reserve(bot, settings.estimatePerCallJpy, settings.budgetJpy);
 		const controller = new AbortController();
 		this.botJobs.set(bot, controller);
+		const cancellationWatcher = setInterval(() => {
+			if (this.store.botStopVersion(bot) !== botStopVersion) controller.abort();
+		}, 100);
 		try {
 			const result = await runWorker(this.root, bot, settings.model, request, controller.signal);
+			if (this.store.botStopVersion(bot) !== botStopVersion) throw new CreationsError('BOT_STOPPED');
 			this.store.settle(reservation, settings.estimatePerCallJpy);
 			return result;
 		} finally {
+			clearInterval(cancellationWatcher);
 			this.botJobs.delete(bot);
 		}
 	}
@@ -393,6 +399,10 @@ ${spontaneous ? 'Write one short spontaneous public post, route=chat. Do not men
 		const selection = targets[0];
 		const character = catalog.find(entry => entry.key === selection.key)!;
 		const stopVersion = this.store.read('stopVersion');
+		const botStopVersions = {
+			aphr: this.store.botStopVersion('aphr'),
+			tarot: this.store.botStopVersion('tarot'),
+		};
 		let operationalNotice = false;
 		let usedBot: BotFunction | null = null;
 		let response: string;
@@ -412,7 +422,7 @@ ${spontaneous ? 'Write one short spontaneous public post, route=chat. Do not men
 					usedBot = decision.route;
 					response = await this.executeBot(decision.route, this.store.settings(), {
 						text: note.text, reference: character.reference!, context,
-					}, stopVersion);
+					}, stopVersion, botStopVersions[decision.route]);
 				}
 			}
 		} catch (error) {
@@ -428,12 +438,18 @@ ${spontaneous ? 'Write one short spontaneous public post, route=chat. Do not men
 		const stillSelected = this.store.selections().find(entry => entry.key === selection.key);
 		const stillPermitted = (await this.catalog(current)).find(entry => entry.key === selection.key);
 		if ((!current.running && !operationalNotice) || this.store.read('stopVersion') !== stopVersion ||
+			(usedBot && this.store.botStopVersion(usedBot) !== botStopVersions[usedBot]) ||
 			!stillSelected?.enabled || stillPermitted?.permission !== 'allowed' || stillPermitted.reference !== character.reference ||
 			(usedBot && !current.bots[usedBot].enabled)) {
 			this.store.finish(`mention:${note.id}`, 'stopped', 'STOPPED_BEFORE_POST');
 			return;
 		}
 		const actor = await this.users.findOneByOrFail({ id: selection.userId });
+		if (usedBot && (this.store.botStopVersion(usedBot) !== botStopVersions[usedBot] ||
+			!this.store.settings().bots[usedBot].enabled)) {
+			this.store.finish(`mention:${note.id}`, 'stopped', 'STOPPED_BEFORE_POST');
+			return;
+		}
 		// Restricted replies go only to the human, not a potentially broader bot follower audience.
 		const visibility = note.visibility === 'public' ? 'public' : note.visibility === 'home' ? 'home' : 'specified';
 		const posted = await this.noteCreateService.create(actor, {
@@ -448,6 +464,10 @@ ${spontaneous ? 'Write one short spontaneous public post, route=chat. Do not men
 
 	private async spontaneous(selection: Selection, catalog: CatalogCharacter[], config: Settings): Promise<void> {
 		const stopVersion = this.store.read('stopVersion');
+		const botStopVersions = {
+			aphr: this.store.botStopVersion('aphr'),
+			tarot: this.store.botStopVersion('tarot'),
+		};
 		const followed = await this.followings.existsBy({ followerId: this.meta.rootUserId!, followeeId: selection.userId });
 		const day = dayKey();
 		const target = 4 + createHash('sha256').update(`${day}:${selection.key}`).digest()[0] % 3;
@@ -477,7 +497,7 @@ ${spontaneous ? 'Write one short spontaneous public post, route=chat. Do not men
 					text: route === 'tarot' ? '今日の一枚を引き、短い公開向けのタロット投稿を1件書いてください。' :
 						'このキャラとして、日常の振り返りのきっかけになる短い公開投稿を1件書いてください。',
 					reference: character.reference!, context: [],
-				}, stopVersion);
+				}, stopVersion, botStopVersions[route]);
 			}
 			const current = this.store.settings();
 			const active = this.store.selections().find(entry => entry.key === selection.key);
@@ -485,12 +505,18 @@ ${spontaneous ? 'Write one short spontaneous public post, route=chat. Do not men
 			const stillFollowed = await this.followings.existsBy({ followerId: this.meta.rootUserId!, followeeId: selection.userId });
 			if (!current.running || !active?.enabled || !active.spontaneous || dayKey() !== day ||
 				this.store.read('stopVersion') !== stopVersion || stillFollowed !== followed ||
+				(route !== 'chat' && this.store.botStopVersion(route) !== botStopVersions[route]) ||
 				(route !== 'chat' && (!active.functions.includes(route) || !current.bots[route].enabled)) ||
 				permission?.permission !== 'allowed' || permission.reference !== character.reference) {
 				this.store.finish(job, 'stopped', 'STOPPED_OR_PERMISSION_CHANGED');
 				return;
 			}
 			const actor = await this.users.findOneByOrFail({ id: selection.userId });
+			if (route !== 'chat' && (this.store.botStopVersion(route) !== botStopVersions[route] ||
+				!this.store.settings().bots[route].enabled)) {
+				this.store.finish(job, 'stopped', 'STOPPED_OR_PERMISSION_CHANGED');
+				return;
+			}
 			const posted = await this.noteCreateService.create(actor, {
 				text: text.slice(0, 2800), visibility: 'public', localOnly: true,
 			});
