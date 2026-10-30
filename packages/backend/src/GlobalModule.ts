@@ -8,6 +8,7 @@ import * as Redis from 'ioredis';
 import { DataSource } from 'typeorm';
 import { Meilisearch } from 'meilisearch';
 import { MiMeta } from '@/models/Meta.js';
+import { applyLocalOnlyPolicy, LOCAL_ONLY_META } from '@/core/LocalOnlyPolicy.js';
 import { DI } from './di-symbols.js';
 import { Config, loadConfig } from './config.js';
 import { createPostgresDataSource } from './postgres.js';
@@ -111,7 +112,8 @@ const $meta: Provider = {
 			const meta = metas[0];
 
 			if (meta) {
-				return meta;
+				await transactionalEntityManager.update(MiMeta, meta.id, LOCAL_ONLY_META);
+				return applyLocalOnlyPolicy(await transactionalEntityManager.findOneByOrFail(MiMeta, { id: meta.id }));
 			} else {
 				// metaが空のときfetchMetaが同時に呼ばれるとここが同時に呼ばれてしまうことがあるのでフェイルセーフなupsertを使う
 				const saved = await transactionalEntityManager
@@ -119,12 +121,13 @@ const $meta: Provider = {
 						MiMeta,
 						{
 							id: 'x',
+							...LOCAL_ONLY_META,
 						},
 						['id'],
 					)
 					.then((x) => transactionalEntityManager.findOneByOrFail(MiMeta, x.identifiers[0]));
 
-				return saved;
+				return applyLocalOnlyPolicy(saved);
 			}
 		});
 
@@ -138,6 +141,7 @@ const $meta: Provider = {
 						for (const key in body.after) {
 							(meta as any)[key] = (body.after as any)[key];
 						}
+						applyLocalOnlyPolicy(meta);
 						meta.rootUser = null; // joinなカラムは通常取ってこないので
 						break;
 					}

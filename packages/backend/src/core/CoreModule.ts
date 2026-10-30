@@ -79,6 +79,7 @@ import { ChatService } from './ChatService.js';
 import { RegistryApiService } from './RegistryApiService.js';
 import { ReversiService } from './ReversiService.js';
 import { PageService } from './PageService.js';
+import { CreationsService } from './CreationsService.js';
 
 import { ChartLoggerService } from './chart/ChartLoggerService.js';
 import FederationChart from './chart/charts/federation.js';
@@ -312,6 +313,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		QueueModule,
 	],
 	providers: [
+		CreationsService,
 		LoggerService,
 		AbuseReportService,
 		AbuseReportNotificationService,
@@ -613,6 +615,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		//#endregion
 	],
 	exports: [
+		CreationsService,
 		QueueModule,
 		LoggerService,
 		AbuseReportService,

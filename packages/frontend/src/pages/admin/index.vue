@@ -102,6 +102,11 @@ const menuDef = computed<SuperMenuDef[]>(() => [{
 }, {
 	title: i18n.ts.administration,
 	items: [{
+		icon: 'ti ti-sparkles',
+		text: i18n.ts._creations.title,
+		to: '/admin/creations',
+		active: currentPage.value?.route.name === 'creations',
+	}, {
 		icon: 'ti ti-dashboard',
 		text: i18n.ts.dashboard,
 		to: '/admin/overview',

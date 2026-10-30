@@ -214,6 +214,16 @@ export type paths = {
          */
         post: operations['admin___captcha___save'];
     };
+    '/admin/creations': {
+        /**
+         * admin/creations
+         * @description No description provided.
+         *
+         *     **Internal Endpoint**: This endpoint is an API for the misskey mainframe and is not intended for use by third parties.
+         *     **Credential required**: *Yes*
+         */
+        post: operations['admin___creations'];
+    };
     '/admin/delete-account': {
         /**
          * admin/delete-account
@@ -7436,6 +7446,137 @@ export interface operations {
             };
             /** @description I'm Ai */
             418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Error'];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Error'];
+                };
+            };
+        };
+    };
+    admin___creations: {
+        requestBody: {
+            content: {
+                'application/json': {
+                    /** @enum {string} */
+                    action: 'status' | 'configure' | 'catalog' | 'character' | 'bot' | 'start' | 'stop';
+                    /** @enum {string} */
+                    provider?: 'openai' | 'gemini';
+                    model?: string;
+                    inputJpyPerMillion?: number;
+                    outputJpyPerMillion?: number;
+                    catalogPath?: string;
+                    characterKey?: string;
+                    enabled?: boolean;
+                    spontaneous?: boolean;
+                    functions?: ('aphr' | 'tarot')[];
+                    /** @enum {string} */
+                    bot?: 'aphr' | 'tarot';
+                    budgetJpy?: number;
+                    estimatePerCallJpy?: number;
+                    termsConfirmed?: boolean;
+                    resetModel?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description OK (with results) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': {
+                        running: boolean;
+                        catalogPath: string;
+                        /** @enum {string} */
+                        provider: 'openai' | 'gemini';
+                        model: string;
+                        inputJpyPerMillion: number;
+                        outputJpyPerMillion: number;
+                        providerKeyConfigured: boolean;
+                        termsConfirmed: boolean;
+                        lastError: string | null;
+                        month: string;
+                        spentJpy: number;
+                        monthlyLimitJpy: number;
+                        catalog: {
+                            key: string;
+                            work: string;
+                            db: string;
+                            name: string;
+                            /** @enum {string} */
+                            permission: 'allowed' | 'denied' | 'unknown';
+                            reason: string;
+                            userId: string | null;
+                            username: string | null;
+                            enabled: boolean;
+                            spontaneous: boolean;
+                            functions: ('aphr' | 'tarot')[];
+                        }[];
+                        botStatus: {
+                            /** @enum {string} */
+                            id: 'aphr' | 'tarot';
+                            enabled: boolean;
+                            model: string;
+                            budgetJpy: number;
+                            estimatePerCallJpy: number;
+                            spentJpy: number;
+                            keyConfigured: boolean;
+                            installed: boolean;
+                            termsConfirmed: boolean;
+                        }[];
+                    };
+                };
+            };
+            /** @description Client error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Error'];
+                };
+            };
+            /** @description Authentication error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Error'];
+                };
+            };
+            /** @description Forbidden error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Error'];
+                };
+            };
+            /** @description I'm Ai */
+            418: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Error'];
+                };
+            };
+            /** @description Too many requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

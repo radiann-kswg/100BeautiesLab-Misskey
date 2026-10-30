@@ -39,9 +39,8 @@ export function isAvailableBasicTimeline(timeline: BasicTimelineType | undefined
 		case 'local':
 			return ($i == null && instance.policies.ltlAvailable) || ($i != null && $i.policies.ltlAvailable);
 		case 'social':
-			return $i != null && $i.policies.ltlAvailable;
 		case 'global':
-			return ($i == null && instance.policies.gtlAvailable) || ($i != null && $i.policies.gtlAvailable);
+			return false;
 		default:
 			return false;
 	}

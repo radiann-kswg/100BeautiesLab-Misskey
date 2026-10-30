@@ -12,6 +12,7 @@ import { GlobalEventService } from '@/core/GlobalEventService.js';
 import { bindThis } from '@/decorators.js';
 import type { GlobalEvents } from '@/core/GlobalEventService.js';
 import { FeaturedService } from '@/core/FeaturedService.js';
+import { applyLocalOnlyPolicy, LOCAL_ONLY_META } from '@/core/LocalOnlyPolicy.js';
 import type { OnApplicationShutdown } from '@nestjs/common';
 
 @Injectable()
@@ -51,10 +52,10 @@ export class MetaService implements OnApplicationShutdown {
 			const { type, body } = obj.message as GlobalEvents['internal']['payload'];
 			switch (type) {
 				case 'metaUpdated': {
-					this.cache = { // TODO: このあたりのデシリアライズ処理は各modelファイル内に関数としてexportしたい
+					this.cache = applyLocalOnlyPolicy({ // TODO: このあたりのデシリアライズ処理は各modelファイル内に関数としてexportしたい
 						...(body.after),
 						rootUser: null, // joinなカラムは通常取ってこないので
-					};
+					});
 					break;
 				}
 				default:
@@ -65,7 +66,7 @@ export class MetaService implements OnApplicationShutdown {
 
 	@bindThis
 	public async fetch(noCache = false): Promise<MiMeta> {
-		if (!noCache && this.cache) return this.cache;
+		if (!noCache && this.cache) return applyLocalOnlyPolicy(this.cache);
 
 		return await this.db.transaction(async transactionalEntityManager => {
 			// 過去のバグでレコードが複数出来てしまっている可能性があるので新しいIDを優先する
@@ -78,8 +79,9 @@ export class MetaService implements OnApplicationShutdown {
 			const meta = metas[0];
 
 			if (meta) {
-				this.cache = meta;
-				return meta;
+				await transactionalEntityManager.update(MiMeta, meta.id, LOCAL_ONLY_META);
+				this.cache = applyLocalOnlyPolicy(await transactionalEntityManager.findOneByOrFail(MiMeta, { id: meta.id }));
+				return this.cache;
 			} else {
 				// metaが空のときfetchMetaが同時に呼ばれるとここが同時に呼ばれてしまうことがあるのでフェイルセーフなupsertを使う
 				const saved = await transactionalEntityManager
@@ -87,13 +89,14 @@ export class MetaService implements OnApplicationShutdown {
 						MiMeta,
 						{
 							id: 'x',
+							...LOCAL_ONLY_META,
 						},
 						['id'],
 					)
 					.then((x) => transactionalEntityManager.findOneByOrFail(MiMeta, x.identifiers[0]));
 
-				this.cache = saved;
-				return saved;
+				this.cache = applyLocalOnlyPolicy(saved);
+				return this.cache;
 			}
 		});
 	}
@@ -112,11 +115,12 @@ export class MetaService implements OnApplicationShutdown {
 			before = metas[0];
 
 			if (before) {
-				await transactionalEntityManager.update(MiMeta, before.id, data);
+				await transactionalEntityManager.update(MiMeta, before.id, applyLocalOnlyPolicy({ ...data }));
 			} else {
 				await transactionalEntityManager.save(MiMeta, {
 					...data,
 					id: 'x',
+					...LOCAL_ONLY_META,
 				});
 			}
 
@@ -126,7 +130,7 @@ export class MetaService implements OnApplicationShutdown {
 				},
 			});
 
-			return afters[0];
+			return applyLocalOnlyPolicy(afters[0]);
 		});
 
 		if (data.hiddenTags) {
@@ -144,6 +148,7 @@ export class MetaService implements OnApplicationShutdown {
 			});
 		}
 
+		this.cache = updated;
 		this.globalEventService.publishInternalEvent('metaUpdated', { before, after: updated });
 
 		return updated;

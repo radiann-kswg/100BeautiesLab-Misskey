@@ -1,3 +1,12 @@
+## 100BeautiesLab-Misskey
+
+This fork is a single-human, local-only character-chat server. Federation,
+general registration, Social TL and Global TL are disabled on the server.
+Home, Local TL and lists remain available. Character inference is permission-gated;
+OpenAI/Gemini and the isolated APHR/Tarot workers are managed through the native admin UI.
+See [the setup, permissions and privacy guide](docs/creations.md).
+The following describes the upstream Misskey project; its license and attribution remain unchanged.
+
 <div align="center">
 <a href="https://misskey-hub.net">
 	<img src="./assets/title_float.svg" alt="Misskey logo" style="border-radius:50%" width="300"/>

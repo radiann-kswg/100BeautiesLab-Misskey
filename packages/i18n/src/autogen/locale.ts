@@ -7,6 +7,190 @@ export interface Locale extends ILocale {
      * 日本語
      */
     "_lang_": string;
+    "_creations": {
+        /**
+         * 創作キャラクター
+         */
+        "title": string;
+        /**
+         * このforkは連合・一般登録・ソーシャルTL・グローバルTLを無効に固定しています。ホーム・ローカルTL・リストは利用できます。LAN/VPN以外には公開しないでください。
+         */
+        "localOnly": string;
+        /**
+         * 会話と自発投稿は稼働中
+         */
+        "running": string;
+        /**
+         * 会話と自発投稿は停止中
+         */
+        "stopped": string;
+        /**
+         * 起動
+         */
+        "start": string;
+        /**
+         * 停止
+         */
+        "stop": string;
+        /**
+         * {month}の概算使用額: {used}円 / {limit}円
+         */
+        "budgetUsage": ParameterizedString<"month" | "used" | "limit">;
+        /**
+         * 通常会話・自然文振り分けの接続先
+         */
+        "provider": string;
+        /**
+         * モデル名
+         */
+        "model": string;
+        /**
+         * 入力100万トークン当たりの概算円単価
+         */
+        "inputRate": string;
+        /**
+         * 出力100万トークン当たりの概算円単価
+         */
+        "outputRate": string;
+        /**
+         * 秘密鍵はサーバ環境変数CREATIONS_OPENAI_API_KEY / CREATIONS_GEMINI_API_KEY / CREATIONS_ANTHROPIC_API_KEYで設定します。画面・ログに鍵は表示しません。
+         */
+        "keys": string;
+        /**
+         * 鍵設定済み
+         */
+        "keyReady": string;
+        /**
+         * 鍵未設定
+         */
+        "keyMissing": string;
+        /**
+         * 保存・学習利用条件と権利者の許諾を確認しました。Geminiは有料APIのみを使用します。APIの外部送信と概算単価を確認しました。
+         */
+        "providerTerms": string;
+        /**
+         * 作品横断カタログ
+         */
+        "catalog": string;
+        /**
+         * CreationsAIのmanifest.jsonlまたは作品カタログJSONの絶対パス
+         */
+        "catalogPath": string;
+        /**
+         * カタログを読み込む
+         */
+        "loadCatalog": string;
+        /**
+         * 許諾不明・不許可のキャラは停止します。権利者に確認してDBの該当レコードのAI_TextRP_Allowedをtrueに更新し、CreationsAIで再生成して読み直してください。画像・デザイン・学習の設定は変更しません。
+         */
+        "permissionInstructions": string;
+        /**
+         * 独立workerだけを実行します。元Botの受信ループ・自動投稿は起動せず、このキャラのアカウントから中央で1回だけ返信します。通常会話とは別予算です。
+         */
+        "botIsolation": string;
+        /**
+         * 独立Botインストール済み
+         */
+        "installed": string;
+        /**
+         * 未インストール。docs/creations.mdの初期設定が必要です
+         */
+        "notInstalled": string;
+        /**
+         * Bot固有のモデル（空欄は元Botの既定値）
+         */
+        "botModel": string;
+        /**
+         * このBotの月間概算予算（円）
+         */
+        "botBudget": string;
+        /**
+         * このBotの1実行当たりの保守的な概算額（円・不明なら起動不可）
+         */
+        "botCost": string;
+        /**
+         * Bot固有の外部APIの保存・学習条件と概算費用を確認しました
+         */
+        "botTerms": string;
+        /**
+         * 選んだキャラだけアカウント化します。会話は本人からの明示メンションだけに応答します。未フォローの自発投稿は全キャラ合計12件/日まで、フォロー中は枠外で各4～6件/日までです。返信はこの枠に含みません。
+         */
+        "characterInstructions": string;
+        /**
+         * テキストRP許可
+         */
+        "allowed": string;
+        /**
+         * テキストRP不許可
+         */
+        "denied": string;
+        /**
+         * テキストRP許諾未確認
+         */
+        "unknown": string;
+        /**
+         * キャラの会話を有効化
+         */
+        "enableCharacter": string;
+        /**
+         * 少量の自発投稿を許可
+         */
+        "spontaneous": string;
+        /**
+         * この正規レコードのキャラ用アカウントを1つ作成します。通常会話と選んだBot機能はこの同じアカウントを使います。
+         */
+        "createConfirm": string;
+        "_errors": {
+            /**
+             * サーバ環境変数のAPIキーが未設定です。秘密情報を画面へ貼らず、サーバの設定後に再起動してください。
+             */
+            "key": string;
+            /**
+             * 外部APIの保存・学習利用条件を確認し、管理画面の確認チェックを保存してください。
+             */
+            "terms": string;
+            /**
+             * 通常会話の月間概算3000円枠に到達しました。今月の生成を停止しています。
+             */
+            "budget": string;
+            /**
+             * このBotの月間概算予算に到達しました。別予算の設定と利用額を確認してください。
+             */
+            "botBudget": string;
+            /**
+             * 費用が確認できないか、概算予算が不足しています。正の円単価・予算を入力してください。未精算の予約額は安全側に残します。
+             */
+            "cost": string;
+            /**
+             * このキャラのテキストRP許可と本文を確認できません。DBで個別の許諾を確定し、再生成したカタログを読み直してください。
+             */
+            "permission": string;
+            /**
+             * カタログを読み込めません。パス、JSONL形式、正規IDの重複、生成元の契約を確認してください。
+             */
+            "catalog": string;
+            /**
+             * 独立Botの準備を確認できません。専用installerを実行し、固定refとPython環境を確認してください。
+             */
+            "install": string;
+            /**
+             * 停止操作または設定の変更を検出しました。現在の設定を再読み込みしてから操作してください。
+             */
+            "stopped": string;
+            /**
+             * 選んだ外部APIで生成に失敗しました。モデル名・利用条件・接続を確認してください。他providerへは切り替えていません。
+             */
+            "provider": string;
+            /**
+             * 自然文の振り分け結果を検証できませんでした。許可されていない機能は実行していません。
+             */
+            "routing": string;
+            /**
+             * 処理を完了できませんでした。管理画面の状態とエラーコードを確認してください。
+             */
+            "general": string;
+        };
+    };
     /**
      * ノートでつながるネットワーク
      */
